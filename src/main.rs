@@ -5,6 +5,8 @@ fn main() {
     #[allow(unused_imports)]
     use glium::{glutin, Surface};
 
+    let start_time = std::time::Instant::now();
+
     let event_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(768.0, 768.0));
@@ -19,8 +21,10 @@ fn main() {
 
     implement_vertex!(Vertex, position, uv);
 
-    let mut reload_shader_timeout = std::time::Instant::now() + std::time::Duration::from_secs(3);
-    let (mut vertex_shader_src, mut fragment_shader_src) = load_shaders();
+    let mut reload_shader_timeout = std::time::Instant::now();
+    let (mut vertex_shader_src, mut fragment_shader_src) = load_default_shaders();
+    let mut frag_shader_reload_counter = 0;
+    let mut vert_shader_reload_counter = 0;
 
     let matrix = [
         [1.0, 0.0, 0.0, 0.0],
@@ -85,12 +89,16 @@ fn main() {
 
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);
+
+        let uniforms =
+            &uniform! { matrix: matrix }.add("Time", start_time.elapsed().as_millis() as f32);
+
         target
             .draw(
                 &vertex_buffer,
                 &indices,
                 &program,
-                &uniform! { matrix: matrix },
+                uniforms,
                 &Default::default(),
             )
             .unwrap();
@@ -100,27 +108,43 @@ fn main() {
             reload_shader_timeout = std::time::Instant::now() + std::time::Duration::from_secs(3);
             let (new_vertex_shader_src, new_fragment_shader_src) = load_shaders();
             if new_vertex_shader_src != vertex_shader_src {
-                vertex_shader_src = new_vertex_shader_src;
-                program = glium::Program::from_source(
-                    &display,
-                    &vertex_shader_src,
-                    &fragment_shader_src,
-                    None,
-                )
-                .unwrap();
-                println!("Reloaded vertex shader");
+                vert_shader_reload_counter += 1;
+                println!("Reloading vertex shader");
             }
+
             if new_fragment_shader_src != fragment_shader_src {
+                frag_shader_reload_counter += 1;
+                println!("Reloading fragment shader");
+            }
+
+            if new_vertex_shader_src != vertex_shader_src
+                || new_fragment_shader_src != fragment_shader_src
+            {
+                vertex_shader_src = new_vertex_shader_src;
                 fragment_shader_src = new_fragment_shader_src;
-                program = glium::Program::from_source(
+
+                match glium::Program::from_source(
                     &display,
                     &vertex_shader_src,
                     &fragment_shader_src,
                     None,
-                )
-                .unwrap();
-                println!("Reloaded fragment shader");
+                ) {
+                    Ok(new_program) => {
+                        program = new_program;
+                    }
+
+                    Err(e) => println!("Error reloading vertex shader: {}", e),
+                }
             }
+
+            let new_title = format!(
+                "23raindrops (reloads: v={} f={}) (elapsed: {}s)",
+                vert_shader_reload_counter,
+                frag_shader_reload_counter,
+                start_time.elapsed().as_secs()
+            );
+
+            display.gl_window().window().set_title(&new_title);
         }
     });
 }
@@ -130,4 +154,14 @@ fn load_shaders() -> (String, String) {
     let fragment_shader_src = std::fs::read_to_string("src/glsl/fragment.glsl").unwrap();
 
     return (vertex_shader_src, fragment_shader_src);
+}
+
+fn load_default_shaders() -> (String, String) {
+    let vertex_shader_src = include_str!("glsl/default.vert.glsl");
+    let fragment_shader_src = include_str!("glsl/default.frag.glsl");
+
+    return (
+        vertex_shader_src.to_string(),
+        fragment_shader_src.to_string(),
+    );
 }
