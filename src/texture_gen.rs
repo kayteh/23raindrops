@@ -44,7 +44,7 @@ impl InterpolatorBlock {
                 interpolators[i * 4],
                 interpolators[i * 4 + 1],
                 interpolators[i * 4 + 2],
-                255,
+                interpolators[i * 4 + 3],
             ]);
             pixels.push(pixel);
         }
@@ -53,9 +53,9 @@ impl InterpolatorBlock {
     }
 }
 
-pub fn output_texture<W: Write>(pixels: Vec<InterpolatorBlock>, destination: &mut W) -> Result<(), ()> {
+pub fn output_texture<W: Write>(image_size: u32, pixels: Vec<Pixel>, destination: &mut W) -> Result<(), ()> {
     let ref mut buffer = BufWriter::new(destination);
-    let mut encoder = png::Encoder::new(buffer, 128, 128);
+    let mut encoder = png::Encoder::new(buffer, image_size, image_size);
     encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
     encoder.set_compression(png::Compression::Fast);
@@ -69,4 +69,54 @@ pub fn output_texture<W: Write>(pixels: Vec<InterpolatorBlock>, destination: &mu
     writer.write_image_data(&flattened_pixels).unwrap();
 
     Ok(())
+}
+
+// Make a grid of interpolator blocks, and output them as pixels.
+pub fn pixels_from_interpolator_blocks(image_size: u32, interpolator_blocks: Vec<InterpolatorBlock>) -> Vec<Pixel> {
+    let mut grid: Vec<Vec<Pixel>> = Vec::new();
+
+    // prefill grid with empty pixels
+    for y in 0..image_size {
+        let mut row: Vec<Pixel> = Vec::new();
+        for x in 0..image_size {
+            row.push(Pixel {
+                r: (x % 255) as u8,
+                g: (y % 255) as u8,
+                b: 0,
+                a: 255,
+            });
+        }
+        grid.push(row);
+    }
+
+    // TODO: fill in the grid with interpolator blocks
+    for block_index in 0..interpolator_blocks.len()-1 {
+        // every block is 2x2
+        let block_x = block_index % (image_size / 2) as usize;
+        let block_y = block_index / (image_size / 2) as usize;
+        let block_x_offset = block_x * 2;
+        let block_y_offset = block_y * 2;
+        for x in 0..2 {
+            for y in 0..2 {
+                let block_x = block_x_offset + x;
+                let block_y = block_y_offset + y;
+                let pixel = &interpolator_blocks[block_index].pixels[y * 2 + x];
+                grid[block_y as usize][block_x as usize] = Pixel {
+                    r: pixel.r,
+                    g: pixel.g,
+                    b: pixel.b,
+                    a: pixel.a,
+                };
+            }
+        }
+    }
+
+    // return the grid as a vector of pixels
+    let mut pixels: Vec<Pixel> = Vec::new();
+    for row in grid {
+        for pixel in row {
+            pixels.push(pixel);
+        }
+    }
+    pixels
 }
