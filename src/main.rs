@@ -3,11 +3,12 @@ extern crate glium;
 
 use std::fs::OpenOptions;
 use std::path::Path;
-use std::io::Write;
+use std::io::BufWriter;
 
+mod generate_interpolators;
 mod graphics;
 mod texture_gen;
-mod generate_interpolators;
+mod texture_utils;
 
 fn main() {
     println!("Building beatmap texture...");
@@ -19,15 +20,13 @@ fn main() {
     
     let blocks = generate_interpolators::sine_interpolation(image_size, interpolator_count, 1.0);
     let pixels = texture_gen::pixels_from_interpolator_blocks(image_size, blocks);
-    
     texture_gen::output_texture(pixels, &mut texture).unwrap();
+    println!("Created texture with {} bytes (input size={}, output size={})", texture.len(), image_size, (image_size as f32/4.0).sqrt());
     
-    // let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path).unwrap();
-    // file.write_all(&texture.clone().as_slice()).unwrap();
-    // file.sync_all().unwrap();
-    // println!("Wrote texture to {}", path.display());
-
-    println!("Texture info: size={}", texture.len());
+    let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path).unwrap();
+    let mut file_write_buf = BufWriter::new(&mut file);
+    texture_utils::write_texture_as_png(&texture, image_size, &mut file_write_buf).unwrap();
+    println!("Wrote texture to {}", path.display());
 
     println!("Starting renderer...");
     graphics::start_graphics(image_size, texture);
