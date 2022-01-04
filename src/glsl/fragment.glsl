@@ -5,6 +5,7 @@ out vec4 color;
 in vec2 texCoord;
 
 uniform float Time;
+uniform sampler2D Texture;
 
 vec3 float2vec3(float f) {
     return vec3(f, f, f);
@@ -58,5 +59,9 @@ void main() {
     vec3 outStencil = float2vec3(ring);
 
     vec3 baseColor = clamp(getBaseColor(vec2(mirrorDimension)), 0.0, 1.0);
-    color = vec4(baseColor * (1-outStencil), 1.0);
+    color = vec4(baseColor, 1.0);
+
+    vec4 tex = texture(Texture, texCoord);
+    color = vec4(mix(tex, color, tex.a).rgb, 1.0);
+    color = vec4(color.rgb * (1-outStencil), 1.0);
 }

@@ -1,6 +1,6 @@
 use glium;
 
-pub fn start_graphics() {
+pub fn start_graphics(texture_size: u32, texture: Vec<u8>) {
     #[allow(unused_imports)]
     use glium::{glutin, Surface};
 
@@ -64,6 +64,15 @@ pub fn start_graphics() {
     .unwrap();
 
     let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
+
+    let texture = glium::texture::SrgbTexture2d::new(
+        &display,
+        glium::texture::RawImage2d::from_raw_rgba_reversed(
+            &texture.as_slice()[..],
+            (texture_size, texture_size),
+        ),
+    ).unwrap();
+
     event_loop.run(move |event, _, control_flow| {
         match event {
             glutin::event::Event::WindowEvent { event, .. } => match event {
@@ -90,7 +99,10 @@ pub fn start_graphics() {
         target.clear_color(0.0, 0.0, 0.0, 1.0);
 
         let uniforms =
-            &uniform! { matrix: matrix }.add("Time", start_time.elapsed().as_millis() as f32);
+            &uniform! { 
+                matrix: matrix,
+                texture: &texture,
+            }.add("Time", start_time.elapsed().as_millis() as f32);
 
         target
             .draw(

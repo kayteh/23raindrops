@@ -53,23 +53,18 @@ impl InterpolatorBlock {
     }
 }
 
-pub fn output_texture<W: Write>(image_size: u32, pixels: Vec<Pixel>, destination: &mut W) -> Result<(), ()> {
-    let ref mut buffer = BufWriter::new(destination);
-    let mut encoder = png::Encoder::new(buffer, image_size, image_size);
-    encoder.set_color(png::ColorType::Rgba);
-    encoder.set_depth(png::BitDepth::Eight);
-    encoder.set_compression(png::Compression::Fast);
-
-    let mut writer = encoder.write_header().unwrap();
+pub fn output_texture<W: Write>(pixels: Vec<Pixel>, destination: &mut W) -> Result<(), ()> {
     // flatten each pixel into a u8 array
     let mut flattened_pixels: Vec<u8> = Vec::new();
     for pixel in pixels {
         flattened_pixels.extend_from_slice(&pixel.to_bytes());
     }
-    writer.write_image_data(&flattened_pixels).unwrap();
+
+    destination.write_all(&flattened_pixels).unwrap();
 
     Ok(())
 }
+
 
 // Make a grid of interpolator blocks, and output them as pixels.
 pub fn pixels_from_interpolator_blocks(image_size: u32, interpolator_blocks: Vec<InterpolatorBlock>) -> Vec<Pixel> {
