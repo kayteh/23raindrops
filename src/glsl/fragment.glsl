@@ -12,6 +12,7 @@ vec3 float2vec3(float f) {
 }
 
 float sinTimeNormalized() {
+    return 0;
     return sin(Time/1000) - 0.5 * 2;
 }
 
@@ -46,22 +47,44 @@ vec3 getBaseColor(vec2 uv) {
     vec3 initialColor = vec3(1, 0, 1);
     return hueShift(initialColor, mix(0, PI, sinTimeNormalized()));
 }
+
+mat4 getTexelData(ivec2 position) {
+    // this looks out of order, but it's correct
+    return mat4(
+        texelFetch(Texture, position + ivec2(0, 1), 0),
+        texelFetch(Texture, position + ivec2(1, 1), 0),
+        texelFetch(Texture, position, 0),
+        texelFetch(Texture, position + ivec2(1, 0), 0)
+    );
+}
+
+ivec2 getFramePosition(int width, int frameNumber) {
+    // if frame number * 2 is longer than the width, we need to wrap around
+    int vertical = frameNumber * 2 % width;
+    int horizontal = (frameNumber * 2 / width) % width;
+    return ivec2(vertical, horizontal);
+}
  
 void main() {
-    float distanceFromCenter = distance(vec2(0.5), texCoord);
-    float mirrorDimension = distanceFromCenter * 2.0;
-    float ring = 0;
-    float ringPower = abs(mirrorDimension - mix(0.2, 0.05, sinTimeNormalized()));
-    if (ringPower > mix(0, 0.15, sinTimeNormalized())) {
-        ring = ringPower * 10;
+    ivec2 position = getFramePosition(512, 512*512-1);
+    mat4 texels = getTexelData(position);
+    // top left
+    if (texCoord.x < 0.5 && texCoord.y < 0.5) {
+        color = vec4(texels[3].rgb, 1);
     }
 
-    vec3 outStencil = float2vec3(ring);
+    // top right
+    else if (texCoord.x > 0.5 && texCoord.y < 0.5) {
+        color = vec4(texels[1].rgb, 1);
+    }
 
-    vec3 baseColor = clamp(getBaseColor(vec2(mirrorDimension)), 0.0, 1.0);
-    color = vec4(baseColor, 1.0);
+    // bottom left
+    else if (texCoord.x < 0.5 && texCoord.y > 0.5) {
+        color = vec4(texels[2].rgb, 1);
+    }
 
-    vec4 tex = texture(Texture, texCoord);
-    color = vec4(mix(tex, color, tex.a).rgb, 1.0);
-    color = vec4(color.rgb * (1-outStencil), 1.0);
+    // bottom right
+    else {
+        color = vec4(texels[0].rgb, 1);
+    }
 }
