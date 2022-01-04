@@ -65,7 +65,7 @@ pub fn start_graphics(texture_size: u32, texture: Vec<u8>) {
 
     let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
 
-    let texture = glium::texture::SrgbTexture2d::new(
+    let texture = glium::texture::Texture2d::new(
         &display,
         glium::texture::RawImage2d::from_raw_rgba_reversed(
             &texture.as_slice()[..],

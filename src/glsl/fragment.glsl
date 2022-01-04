@@ -12,7 +12,6 @@ vec3 float2vec3(float f) {
 }
 
 float sinTimeNormalized() {
-    return 0;
     return sin(Time/1000) - 0.5 * 2;
 }
 
@@ -43,7 +42,7 @@ vec3 hueShift( vec3 color, float hueAdjust ){
 
 }
 
-vec3 getBaseColor(vec2 uv) {
+vec3 getBaseColor() {
     vec3 initialColor = vec3(1, 0, 1);
     return hueShift(initialColor, mix(0, PI, sinTimeNormalized()));
 }
@@ -64,27 +63,16 @@ ivec2 getFramePosition(int width, int frameNumber) {
     int horizontal = (frameNumber * 2 / width) % width;
     return ivec2(vertical, horizontal);
 }
+
+
+float bassLayer(vec2 uv, float value) {
+    return value;
+}
  
 void main() {
-    ivec2 position = getFramePosition(512, 512*512-1);
+    ivec2 position = getFramePosition(512, int(Time/100));
     mat4 texels = getTexelData(position);
-    // top left
-    if (texCoord.x < 0.5 && texCoord.y < 0.5) {
-        color = vec4(texels[3].rgb, 1);
-    }
 
-    // top right
-    else if (texCoord.x > 0.5 && texCoord.y < 0.5) {
-        color = vec4(texels[1].rgb, 1);
-    }
 
-    // bottom left
-    else if (texCoord.x < 0.5 && texCoord.y > 0.5) {
-        color = vec4(texels[2].rgb, 1);
-    }
-
-    // bottom right
-    else {
-        color = vec4(texels[0].rgb, 1);
-    }
+    color.r = bassLayer(texCoord, texels[3].g);
 }
