@@ -17,7 +17,9 @@ fn main() {
     let image_size = 512;
     let interpolator_count = 16;
     
-    let blocks = generate_interpolators::sine_interpolation(image_size, interpolator_count, 0.1);
+    let mut blocks = generate_interpolators::sine_interpolation(image_size, interpolator_count, 0.1);
+    texture_utils::interleave_texture(&mut blocks, texture_utils::read_texture_from_png("example.test.png").unwrap());
+
     let pixels = texture_gen::pixels_from_interpolator_blocks(image_size, blocks);
     texture_gen::output_texture(pixels, &mut texture).unwrap();
     println!("Created texture with {} bytes (input size={}, output size={})", texture.len(), image_size, (image_size as f32/4.0).sqrt());

@@ -1,11 +1,11 @@
-use std::io::{Write, BufWriter};
 use png;
+use std::io::{BufWriter, Write};
 
 pub struct Pixel {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
 }
 
 impl Pixel {
@@ -24,7 +24,7 @@ impl Pixel {
 }
 
 pub struct InterpolatorBlock {
-    pixels: Vec<Pixel>,
+    pub pixels: Vec<Pixel>,
 }
 
 impl InterpolatorBlock {
@@ -38,13 +38,13 @@ impl InterpolatorBlock {
 
     pub fn from_interpolators(interpolators: Vec<u8>) -> InterpolatorBlock {
         let mut pixels = Vec::new();
-        
         for i in 0..interpolators.len() / 4 {
             let pixel = Pixel::from_bytes([
                 interpolators[i * 4],
                 interpolators[i * 4 + 1],
                 interpolators[i * 4 + 2],
-                interpolators[i * 4 + 3],
+                // interpolators[i * 4 + 3],
+                255,
             ]);
             pixels.push(pixel);
         }
@@ -65,9 +65,11 @@ pub fn output_texture<W: Write>(pixels: Vec<Pixel>, destination: &mut W) -> Resu
     Ok(())
 }
 
-
 // Make a grid of interpolator blocks, and output them as pixels.
-pub fn pixels_from_interpolator_blocks(image_size: u32, interpolator_blocks: Vec<InterpolatorBlock>) -> Vec<Pixel> {
+pub fn pixels_from_interpolator_blocks(
+    image_size: u32,
+    interpolator_blocks: Vec<InterpolatorBlock>,
+) -> Vec<Pixel> {
     let mut grid: Vec<Vec<Pixel>> = Vec::new();
 
     // prefill grid with empty pixels
@@ -85,7 +87,7 @@ pub fn pixels_from_interpolator_blocks(image_size: u32, interpolator_blocks: Vec
     }
 
     // TODO: fill in the grid with interpolator blocks
-    for block_index in 0..interpolator_blocks.len()-1 {
+    for block_index in 0..interpolator_blocks.len() - 1 {
         // every block is 2x2
         let block_x = block_index % (image_size / 2) as usize;
         let block_y = block_index / (image_size / 2) as usize;
@@ -116,7 +118,9 @@ pub fn pixels_from_interpolator_blocks(image_size: u32, interpolator_blocks: Vec
     pixels
 }
 
-pub fn alternate_pixels_from_interpolator_blocks(interpolator_blocks: Vec<InterpolatorBlock>) -> Vec<Pixel> {
+pub fn alternate_pixels_from_interpolator_blocks(
+    interpolator_blocks: Vec<InterpolatorBlock>,
+) -> Vec<Pixel> {
     let mut pixels: Vec<Pixel> = Vec::new();
 
     for block in interpolator_blocks {
