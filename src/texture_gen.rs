@@ -115,3 +115,15 @@ pub fn pixels_from_interpolator_blocks(image_size: u32, interpolator_blocks: Vec
     }
     pixels
 }
+
+pub fn alternate_pixels_from_interpolator_blocks(interpolator_blocks: Vec<InterpolatorBlock>) -> Vec<Pixel> {
+    let mut pixels: Vec<Pixel> = Vec::new();
+
+    for block in interpolator_blocks {
+        for pixel in block.pixels {
+            pixels.push(pixel);
+        }
+    }
+
+    pixels
+}
